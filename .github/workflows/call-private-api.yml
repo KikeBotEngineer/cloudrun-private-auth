@@ -2,6 +2,7 @@ name: call-private-api
 
 # Llama a la API privada desde CI sin llaves JSON (Workload Identity Federation).
 # Requiere las variables del repo que imprime deploy/setup-wif.sh.
+# Solo funciona lanzado desde main: el provider WIF rechaza otras ramas.
 on:
   workflow_dispatch:
 

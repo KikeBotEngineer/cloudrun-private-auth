@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Workload Identity Federation para GitHub Actions: sin llaves JSON.
-# Crea el pool, el provider (restringido a $GITHUB_REPO), la SA de CI y su run.invoker.
+# Crea el pool, el provider (restringido a $GITHUB_REPO en main), la SA de CI y su run.invoker.
+# Requiere `gh` autenticado para leer el ID numérico del repo.
 set -euo pipefail
 cd "$(dirname "$0")"
 source ./env
@@ -13,13 +14,24 @@ gcloud iam workload-identity-pools describe "$WIF_POOL" --project "$PROJECT_ID" 
   || gcloud iam workload-identity-pools create "$WIF_POOL" --project "$PROJECT_ID" --location global \
        --display-name "GitHub Actions"
 
-gcloud iam workload-identity-pools providers describe "$WIF_PROVIDER" --project "$PROJECT_ID" \
-  --location global --workload-identity-pool "$WIF_POOL" >/dev/null 2>&1 \
-  || gcloud iam workload-identity-pools providers create-oidc "$WIF_PROVIDER" --project "$PROJECT_ID" \
-       --location global --workload-identity-pool "$WIF_POOL" \
-       --issuer-uri "https://token.actions.githubusercontent.com" \
-       --attribute-mapping "google.subject=assertion.sub,attribute.repository=assertion.repository" \
-       --attribute-condition "assertion.repository == '$GITHUB_REPO'"
+# Se usa el ID numérico del repo, no su nombre: si el repo se renombra o borra,
+# otro que registre el mismo nombre no cumple la condición.
+REPO_ID=$(gh api "repos/$GITHUB_REPO" --jq .id)
+
+# Solo workflows de este repo corriendo sobre main (una rama cualquiera no obtiene la SA).
+PROVIDER_ARGS=(
+  --project "$PROJECT_ID" --location global --workload-identity-pool "$WIF_POOL"
+  --issuer-uri "https://token.actions.githubusercontent.com"
+  --attribute-mapping "google.subject=assertion.sub,attribute.repository_id=assertion.repository_id"
+  --attribute-condition "assertion.repository_id == '$REPO_ID' && assertion.ref == 'refs/heads/main'"
+)
+# create o update: re-ejecutar el script aplica siempre la condición actual.
+if gcloud iam workload-identity-pools providers describe "$WIF_PROVIDER" --project "$PROJECT_ID" \
+     --location global --workload-identity-pool "$WIF_POOL" >/dev/null 2>&1; then
+  gcloud iam workload-identity-pools providers update-oidc "$WIF_PROVIDER" "${PROVIDER_ARGS[@]}"
+else
+  gcloud iam workload-identity-pools providers create-oidc "$WIF_PROVIDER" "${PROVIDER_ARGS[@]}"
+fi
 
 gcloud iam service-accounts describe "$SA_EMAIL" --project "$PROJECT_ID" >/dev/null 2>&1 \
   || gcloud iam service-accounts create "$CI_SA" --project "$PROJECT_ID" --display-name "GitHub Actions CI"
@@ -27,7 +39,7 @@ gcloud iam service-accounts describe "$SA_EMAIL" --project "$PROJECT_ID" >/dev/n
 # Solo los workflows de este repo pueden actuar como la SA.
 gcloud iam service-accounts add-iam-policy-binding "$SA_EMAIL" --project "$PROJECT_ID" \
   --role roles/iam.workloadIdentityUser \
-  --member "principalSet://iam.googleapis.com/$POOL_ID/attribute.repository/$GITHUB_REPO" >/dev/null
+  --member "principalSet://iam.googleapis.com/$POOL_ID/attribute.repository_id/$REPO_ID" >/dev/null
 
 gcloud run services add-iam-policy-binding "$API_SERVICE" --project "$PROJECT_ID" --region "$REGION" \
   --member "serviceAccount:$SA_EMAIL" --role roles/run.invoker >/dev/null

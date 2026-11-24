@@ -8,7 +8,7 @@ from google.auth.transport.requests import AuthorizedSession
 from google.oauth2.credentials import Credentials
 
 from app.config import Settings, load_settings
-from app.main import create_app
+from app.main import MAX_BODY_BYTES, create_app
 
 KEY = "tester-secret-key"
 UPSTREAM = "https://sample-api-xxxx.run.app"
@@ -80,6 +80,20 @@ def test_forwards_with_gateway_token_instead_of_client_authorization():
     assert sent.headers["X-Request-Id"] == "req-123"
     assert "X-API-Key" not in sent.headers
     assert sent.body == b'{"x": 1}'
+
+
+def test_oversized_body_is_413_and_not_forwarded():
+    upstream = FakeUpstream()
+    big = b"x" * (MAX_BODY_BYTES + 1)
+    resp = make_client(upstream).post("/echo", content=big, headers={"X-API-Key": KEY})
+    assert resp.status_code == 413
+    assert upstream.sent == []
+
+
+def test_key_checked_before_body():
+    # Sin key válida se rechaza con 401 aunque el body exceda el límite.
+    big = b"x" * (MAX_BODY_BYTES + 1)
+    assert make_client(FakeUpstream()).post("/echo", content=big).status_code == 401
 
 
 @pytest.mark.parametrize("status", [401, 403])

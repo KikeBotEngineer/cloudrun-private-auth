@@ -127,7 +127,7 @@ session.get(f"{API}/whoami").json()
 | Una key **por consumidor**, con nombre | Se revoca una sin afectar a las demás y el log registra quién llamó (nunca la key) |
 | **Lista permitida** de rutas | El gateway no convierte toda la API privada en pública |
 | Se descarta el `Authorization` del cliente | El cliente no puede inyectar su propio token hacia la API |
-| `requests` + `AuthorizedSession` en endpoints `def` | Reutiliza el cliente del repo; FastAPI los corre en su threadpool |
+| `requests` + `AuthorizedSession` vía `run_in_threadpool` | Reutiliza el cliente del repo sin bloquear el loop; el body (máx. 1 MiB) se lee solo tras validar key y ruta |
 | Sin rate limiting propio | Fuera de alcance; si hace falta, va en API Gateway o Cloud Armor, no en código |
 
 > **Nota:** si la organización tiene la política *Domain Restricted Sharing*, `allUsers` no se puede asignar y el gateway no puede ser público. En ese caso la alternativa es **API Gateway** con API keys administradas.
@@ -139,7 +139,7 @@ session.get(f"{API}/whoami").json()
 1. `google-github-actions/auth` intercambia el token OIDC de GitHub por credenciales de una SA. **No hay llave JSON en los secretos.**
 2. Un paso de Python con `get_token(API)` llama a `/whoami` y verifica `200` y el email de la SA esperada.
 
-`deploy/setup-wif.sh` crea el pool, el provider (restringido a este repo con `attribute.repository`), la SA y su `run.invoker`.
+`deploy/setup-wif.sh` crea el pool, el provider (restringido por `repository_id` a este repo y a la rama `main`), la SA y su `run.invoker`.
 
 ## 7. Cuándo usar qué
 

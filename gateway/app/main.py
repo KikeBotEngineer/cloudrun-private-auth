@@ -1,8 +1,9 @@
 import logging
 
 import requests
-from fastapi import Depends, FastAPI, Request, Response
+from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 
 from app.auth import identify
 from app.config import Settings, load_settings
@@ -13,10 +14,18 @@ log = logging.getLogger("gateway")
 # Lo único que se reenvía del cliente. Authorization y X-API-Key quedan fuera.
 FORWARDED_HEADERS = ("content-type", "accept", "x-request-id")
 METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"]
+# ponytail: límite fijo; pasarlo a Settings si alguna ruta necesita subir archivos.
+MAX_BODY_BYTES = 1024 * 1024
 
 
-async def _body(request: Request) -> bytes:
-    return await request.body()
+async def _read_body(request: Request) -> bytes | None:
+    """Lee el body por streaming; None si supera MAX_BODY_BYTES (cubre también chunked)."""
+    body = bytearray()
+    async for chunk in request.stream():
+        body += chunk
+        if len(body) > MAX_BODY_BYTES:
+            return None
+    return bytes(body)
 
 
 def _error(status: int, detail: str) -> JSONResponse:
@@ -30,9 +39,9 @@ def create_app(settings: Settings | None = None, session: requests.Session | Non
     session = session or get_session(settings.upstream_url)
     app = FastAPI(title="api-key-gateway", docs_url=None, redoc_url=None, openapi_url=None)
 
-    # Endpoint `def`: FastAPI lo corre en su threadpool, así `requests` no bloquea el loop.
+    # El body se lee solo después de validar key y ruta: sin key no se acepta ni un byte.
     @app.api_route("/{path:path}", methods=METHODS)
-    def proxy(path: str, request: Request, body: bytes = Depends(_body)):
+    async def proxy(path: str, request: Request):
         consumer = identify(request.headers.get("x-api-key"), settings.api_keys)
         if consumer is None:
             log.warning("API key faltante o inválida method=%s path=/%s", request.method, path)
@@ -42,9 +51,15 @@ def create_app(settings: Settings | None = None, session: requests.Session | Non
         if (request.method, route) not in settings.allowed_routes:
             return _error(404, "Not Found")
 
+        body = await _read_body(request)
+        if body is None:
+            return _error(413, "Body demasiado grande")
+
         headers = {h: request.headers[h] for h in FORWARDED_HEADERS if h in request.headers}
         try:
-            upstream = session.request(
+            # `requests` es bloqueante: se corre en el threadpool para no bloquear el loop.
+            upstream = await run_in_threadpool(
+                session.request,
                 request.method,
                 settings.upstream_url + route,
                 params=request.query_params.multi_items(),
