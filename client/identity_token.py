@@ -19,11 +19,19 @@ from google.oauth2.credentials import Credentials as StaticCredentials
 
 
 def normalize_audience(url: str) -> str:
-    """Reduce la URL a `https://host`, que es el audience que Cloud Run espera."""
+    """Reduce la URL a `https://host`, que es el audience que Cloud Run espera.
+
+    Se arma con hostname (y puerto si no es 443), nunca con netloc: así un
+    `usuario:clave@` en la URL no acaba dentro del token ni en un mensaje de error.
+    """
     parts = urlsplit(url)
     if parts.scheme != "https" or not parts.hostname:
-        raise ValueError(f"El audience debe ser una URL https:// del servicio, no {url!r}")
-    return f"https://{parts.netloc}"
+        raise ValueError(
+            "El audience debe ser una URL https:// del servicio "
+            f"(esquema {parts.scheme!r}, host {parts.hostname!r})"
+        )
+    port = f":{parts.port}" if parts.port not in (None, 443) else ""
+    return f"https://{parts.hostname}{port}"
 
 
 def _credentials(audience: str):

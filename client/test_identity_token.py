@@ -73,6 +73,25 @@ def test_invalid_audience(env, bad):
         identity_token.get_token(bad)
 
 
+@pytest.mark.parametrize(
+    "url,expected",
+    [
+        ("https://user:pass@sample-api.run.app/x", "https://sample-api.run.app"),
+        ("https://sample-api.run.app:443/x", "https://sample-api.run.app"),
+        ("https://Sample-API.run.app", "https://sample-api.run.app"),
+        ("https://api.example.com:8443/x", "https://api.example.com:8443"),
+    ],
+)
+def test_normalize_audience(url, expected):
+    assert identity_token.normalize_audience(url) == expected
+
+
+def test_invalid_audience_error_hides_credentials():
+    with pytest.raises(ValueError) as exc:
+        identity_token.normalize_audience("http://user:s3cret@sample-api.run.app")
+    assert "s3cret" not in str(exc.value)
+
+
 def test_session_with_preissued_token_does_not_refresh(env):
     env.setenv("GCP_ID_TOKEN", "pre-issued")
     session = identity_token.get_session(URL)
