@@ -1,0 +1,47 @@
+name: call-private-api
+
+# Llama a la API privada desde CI sin llaves JSON (Workload Identity Federation).
+# Requiere las variables del repo que imprime deploy/setup-wif.sh.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # para pedir el token OIDC de GitHub
+
+jobs:
+  call:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Intercambia el token OIDC de GitHub por un ID token de la SA de CI.
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.CI_SA_EMAIL }}
+          token_format: id_token
+          id_token_audience: ${{ vars.API_URL }}
+          id_token_include_email: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ./client
+
+      - name: GET /whoami
+        env:
+          GCP_ID_TOKEN: ${{ steps.auth.outputs.id_token }}
+          API_URL: ${{ vars.API_URL }}
+          EXPECTED_EMAIL: ${{ vars.CI_SA_EMAIL }}
+        shell: python
+        run: |
+          import os, requests
+          from identity_token import get_token
+
+          api = os.environ["API_URL"]
+          resp = requests.get(f"{api}/whoami", headers={"Authorization": f"Bearer {get_token(api)}"}, timeout=10)
+          print(resp.status_code, resp.text)
+          assert resp.status_code == 200, resp.status_code
+          assert resp.json()["email"] == os.environ["EXPECTED_EMAIL"], resp.json()
