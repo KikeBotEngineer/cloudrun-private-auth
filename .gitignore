@@ -5,5 +5,7 @@ __pycache__/
 .ruff_cache/
 *.egg-info/
 deploy/env
-# Evita subir llaves de service account por accidente
+# Evita subir llaves de service account por accidente (se descargan como <proyecto>-<hex>.json,
+# no hay patrón más fino). Un JSON legítimo se permite con una línea `!ruta/archivo.json`.
+# CI además rechaza cualquier llave privada por contenido (ci.yml).
 *.json
