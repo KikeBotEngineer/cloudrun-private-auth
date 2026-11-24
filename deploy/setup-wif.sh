@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Workload Identity Federation para GitHub Actions: sin llaves JSON.
 # Crea el pool, el provider (restringido a $GITHUB_REPO en main), la SA de CI y su run.invoker.
-# Requiere `gh` autenticado para leer el ID numérico del repo.
+# ID numérico del repo: GITHUB_REPO_ID en deploy/env o, si falta, `gh` autenticado.
 set -euo pipefail
 cd "$(dirname "$0")"
 source ./env
@@ -16,7 +16,7 @@ gcloud iam workload-identity-pools describe "$WIF_POOL" --project "$PROJECT_ID" 
 
 # Se usa el ID numérico del repo, no su nombre: si el repo se renombra o borra,
 # otro que registre el mismo nombre no cumple la condición.
-REPO_ID=$(gh api "repos/$GITHUB_REPO" --jq .id)
+REPO_ID=${GITHUB_REPO_ID:-$(gh api "repos/$GITHUB_REPO" --jq .id)}
 
 # Solo workflows de este repo corriendo sobre main (una rama cualquiera no obtiene la SA).
 PROVIDER_ARGS=(

@@ -128,7 +128,7 @@ Para consumidores **sin identidad en GCP** (Postman, un tercero, una herramienta
 ## CI sin llaves (Workload Identity Federation)
 
 ```bash
-./deploy/setup-wif.sh   # pool, provider restringido a GITHUB_REPO en main (requiere gh), SA de CI y su run.invoker
+./deploy/setup-wif.sh   # pool, provider restringido a GITHUB_REPO en main (GITHUB_REPO_ID o gh), SA de CI y su run.invoker
 ```
 
 El script imprime `WIF_PROVIDER`, `CI_SA_EMAIL` y `API_URL`: configúralas como **variables** del repo en GitHub y lanza el workflow **call-private-api** a mano. `google-github-actions/auth` cambia el token OIDC de GitHub por un ID token de la SA (no hay llave JSON en ningún secreto) y el paso de Python verifica que `/whoami` responde `200` con el email de la SA.
