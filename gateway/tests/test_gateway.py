@@ -23,9 +23,9 @@ SETTINGS = Settings(
 class FakeUpstream(requests.adapters.BaseAdapter):
     """Simula la API privada a nivel de transporte y guarda lo que recibió."""
 
-    def __init__(self, status=200, exc=None):
+    def __init__(self, status=200, exc=None, headers=None):
         super().__init__()
-        self.status, self.exc, self.sent = status, exc, []
+        self.status, self.exc, self.headers, self.sent = status, exc, headers or {}, []
 
     def send(self, request, **kwargs):
         self.sent.append(request)
@@ -33,7 +33,9 @@ class FakeUpstream(requests.adapters.BaseAdapter):
             raise self.exc
         resp = requests.Response()
         resp.status_code, resp._content, resp.url = self.status, b'{"ok": true}', request.url
+        resp.request = request  # como en una respuesta real; requests lo usa en los 3xx
         resp.headers["Content-Type"] = "application/json"
+        resp.headers.update(self.headers)
         return resp
 
     def close(self):
@@ -94,6 +96,24 @@ def test_key_checked_before_body():
     # Sin key válida se rechaza con 401 aunque el body exceda el límite.
     big = b"x" * (MAX_BODY_BYTES + 1)
     assert make_client(FakeUpstream()).post("/echo", content=big).status_code == 401
+
+
+@pytest.mark.parametrize(
+    "location,expected",
+    [
+        (f"{UPSTREAM}/whoami?x=1", "/whoami?x=1"),  # URL privada -> relativa
+        (UPSTREAM, "/"),
+        ("https://example.com/a", "https://example.com/a"),  # externa: tal cual
+        (f"{UPSTREAM}.evil.com/a", f"{UPSTREAM}.evil.com/a"),  # no es prefijo real
+    ],
+)
+def test_redirect_is_returned_not_followed(location, expected):
+    upstream = FakeUpstream(status=302, headers={"Location": location})
+    client = make_client(upstream)
+    resp = client.get("/whoami", headers={"X-API-Key": KEY}, follow_redirects=False)
+    assert resp.status_code == 302
+    assert resp.headers["location"] == expected
+    assert len(upstream.sent) == 1  # el gateway no siguió la redirección
 
 
 @pytest.mark.parametrize("status", [401, 403])

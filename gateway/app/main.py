@@ -28,6 +28,16 @@ async def _read_body(request: Request) -> bytes | None:
     return bytes(body)
 
 
+def _location(upstream: requests.Response, upstream_url: str) -> dict[str, str]:
+    """Reenvía Location; si apunta a la API privada, la deja relativa para no exponer su URL."""
+    loc = upstream.headers.get("location")
+    if not loc:
+        return {}
+    if loc == upstream_url or loc.startswith(upstream_url + "/"):
+        loc = loc[len(upstream_url) :] or "/"
+    return {"location": loc}
+
+
 def _error(status: int, detail: str) -> JSONResponse:
     return JSONResponse({"detail": detail}, status_code=status)
 
@@ -66,6 +76,8 @@ def create_app(settings: Settings | None = None, session: requests.Session | Non
                 data=body,
                 headers=headers,
                 timeout=settings.timeout,
+                # Un 3xx se devuelve al cliente; el gateway no sigue redirecciones por su cuenta.
+                allow_redirects=False,
             )
         except requests.Timeout:
             log.error("Timeout hacia la API consumer=%s %s %s", consumer, request.method, route)
@@ -90,6 +102,7 @@ def create_app(settings: Settings | None = None, session: requests.Session | Non
             upstream.content,
             status_code=upstream.status_code,
             media_type=upstream.headers.get("content-type"),
+            headers=_location(upstream, settings.upstream_url),
         )
 
     return app
