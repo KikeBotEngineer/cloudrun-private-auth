@@ -216,6 +216,7 @@ Todas corren **sin GCP** (credenciales y API privada simuladas):
   - API responde `5xx` → mismo código, sin su cuerpo
   - timeout → `504`
   - la key nunca aparece en logs
+- **sample-api:** `/whoami` devuelve `email` y `aud` del token; `401` sin `Bearer`; `400` con token mal formado (incluido un payload JSON que no es un objeto).
 - **Contenedores** (CI, job `docker`): se construyen ambas imágenes y se arrancan; `sample-api` responde `200` en `/health` y el gateway `401` sin key y `502` con key (upstream inexistente).
 - **Contra GCP real** (manual, `deploy/verify.sh`): API `403` sin token y `200` con token; gateway `401` sin key y, con `GATEWAY_API_KEY`, `200` con la SA del gateway como identidad que ve la API.
 

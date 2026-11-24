@@ -1,7 +1,7 @@
 # Solo configuración de herramientas para el repo (no es un paquete).
 [tool.pytest.ini_options]
-pythonpath = ["client", "gateway"]
-testpaths = ["client", "gateway/tests"]
+pythonpath = ["client", "gateway", "sample-api"]
+testpaths = ["client", "gateway/tests", "sample-api"]
 
 [tool.ruff]
 line-length = 100
@@ -12,4 +12,4 @@ extend-exclude = ["*.md"]
 select = ["E", "F", "I", "B", "UP"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["identity_token", "app"]
+known-first-party = ["identity_token", "app", "main"]

@@ -23,4 +23,6 @@ def whoami(authorization: str | None = Header(default=None)):
         claims = json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
     except (IndexError, ValueError):
         raise HTTPException(400, "Token mal formado") from None
+    if not isinstance(claims, dict):  # JSON válido pero no un objeto (p. ej. una lista)
+        raise HTTPException(400, "Token mal formado")
     return {"email": claims.get("email"), "aud": claims.get("aud")}
