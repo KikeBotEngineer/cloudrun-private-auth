@@ -9,6 +9,19 @@ updates:
       python:
         patterns: ["*"]
 
+  # Imágenes base: solo digests nuevos del mismo tag (parches del SO y de Python 3.12).
+  # Subir de versión de Python es una decisión aparte (CI también fija 3.12).
+  - package-ecosystem: docker
+    directories: ["/gateway", "/sample-api"]
+    schedule:
+      interval: weekly
+    ignore:
+      - dependency-name: python
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+    groups:
+      docker:
+        patterns: ["*"]
+
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
