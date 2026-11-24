@@ -144,7 +144,7 @@ El script imprime `WIF_PROVIDER`, `CI_SA_EMAIL` y `API_URL`: configúralas como 
 | Una key **por consumidor** | Se revoca una sin afectar a las demás; el log dice quién llamó (nunca la key) |
 | **Lista permitida** de rutas | El gateway no convierte toda la API en pública |
 | Se descarta el `Authorization` del cliente | Nadie puede inyectar su propio token hacia la API |
-| Sin rate limiting en el gateway | Va en API Gateway o Cloud Armor, no en código |
+| Sin rate limiting en el gateway | Va en API Gateway o Cloud Armor, no en código; `--max-instances` (`GATEWAY_MAX_INSTANCES`, 3 por defecto) acota el costo de un abuso |
 | WIF en CI | Sin llaves JSON que rotar ni filtrar |
 
 ## Cuándo usar qué

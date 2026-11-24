@@ -36,6 +36,7 @@ gcloud run deploy "$GATEWAY_SERVICE" \
   --source "$STAGE" \
   --service-account "$SA_EMAIL" \
   --allow-unauthenticated \
+  --max-instances "${GATEWAY_MAX_INSTANCES:-3}" \
   --set-env-vars "^@^UPSTREAM_URL=$API_URL@ALLOWED_ROUTES=$ALLOWED_ROUTES@UPSTREAM_TIMEOUT_SECONDS=$UPSTREAM_TIMEOUT_SECONDS" \
   --set-secrets "API_KEYS=$API_KEYS_SECRET:latest"
 

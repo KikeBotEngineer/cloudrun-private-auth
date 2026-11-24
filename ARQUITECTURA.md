@@ -128,7 +128,7 @@ session.get(f"{API}/whoami").json()
 | **Lista permitida** de rutas | El gateway no convierte toda la API privada en pública |
 | Se descarta el `Authorization` del cliente | El cliente no puede inyectar su propio token hacia la API |
 | `requests` + `AuthorizedSession` vía `run_in_threadpool` | Reutiliza el cliente del repo sin bloquear el loop; el body (máx. 1 MiB) se lee solo tras validar key y ruta |
-| Sin rate limiting propio | Fuera de alcance; si hace falta, va en API Gateway o Cloud Armor, no en código |
+| Sin rate limiting propio | Fuera de alcance; si hace falta, va en API Gateway o Cloud Armor, no en código. `--max-instances` (`GATEWAY_MAX_INSTANCES`, 3 por defecto) acota el costo de un abuso |
 
 > **Nota:** si la organización tiene la política *Domain Restricted Sharing*, `allUsers` no se puede asignar y el gateway no puede ser público. En ese caso la alternativa es **API Gateway** con API keys administradas.
 
