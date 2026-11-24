@@ -98,7 +98,7 @@ session.get(f"{API}/whoami").json()
 2. Comprueba que el método y la ruta estén en la **lista permitida**. Si no, responde `404`.
 3. **Descarta** el `Authorization` que mande el cliente.
 4. Obtiene un ID token con su propia SA (reutiliza `client/identity_token.py`).
-5. Reenvía cuerpo, query y `X-Request-Id` a la API privada con timeout, y devuelve la respuesta tal cual.
+5. Reenvía cuerpo, query y `X-Request-Id` a la API privada con timeout, y devuelve su respuesta (salvo los casos de la tabla de abajo: `3xx` sin seguir, `5xx` sin cuerpo, `401/403` → `502`).
 
 **Configuración** (variables de entorno, valores sensibles desde Secret Manager)
 
@@ -108,6 +108,8 @@ session.get(f"{API}/whoami").json()
 | `API_KEYS` | `testers:<sha256>,partner-a:<sha256>` | Consumidor → hash SHA-256 de su key. Sin consumidores ni keys repetidos |
 | `ALLOWED_ROUTES` | `GET /health,GET /whoami` | Rutas que se pueden reenviar. Obligatoria; cada una `MÉTODO /ruta` |
 | `UPSTREAM_TIMEOUT_SECONDS` | `10` | Timeout hacia la API |
+
+`API_KEYS` se monta como variable de entorno con la versión `latest`: cada instancia la lee **al arrancar**. Tras rotar o revocar una key hay que forzar una revisión nueva (procedimiento en el README); si no, conviven instancias con keys viejas y nuevas, y una key revocada sigue funcionando a ratos.
 
 **Respuestas propias del gateway**
 

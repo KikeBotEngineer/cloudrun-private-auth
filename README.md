@@ -109,6 +109,13 @@ Para consumidores **sin identidad en GCP** (Postman, un tercero, una herramienta
    curl -H "X-API-Key: <key>" https://api-key-gateway-xxxx.run.app/whoami
    ```
 
+4. Rotar o revocar una key: publicar una versión nueva del secreto con la lista completa y **forzar una revisión nueva**. Cada instancia lee el secreto al arrancar; sin revisión nueva, una key revocada sigue funcionando en las instancias viejas.
+
+   ```bash
+   printf 'testers:<hash-nuevo>,partner-a:<hash>' | gcloud secrets versions add gateway-api-keys --data-file=-
+   gcloud run services update api-key-gateway --region <REGION> --update-env-vars "KEYS_ROTATED_AT=$(date +%s)"
+   ```
+
 | Variable | Ejemplo | Uso |
 |---|---|---|
 | `UPSTREAM_URL` | `https://sample-api-xxxx.run.app` | API privada (también es el audience) |
