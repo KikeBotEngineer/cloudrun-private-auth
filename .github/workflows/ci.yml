@@ -26,3 +26,35 @@ jobs:
       - run: ruff check .
       - run: ruff format --check .
       - run: pytest
+
+  # Construye las imágenes y las arranca: detecta imports rotos o dependencias incompatibles
+  # que las pruebas (fuera del contenedor) no ven.
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Construir
+        run: |
+          docker build -t gateway -f gateway/Dockerfile .
+          docker build -t sample-api sample-api
+      - name: Arrancar y probar
+        run: |
+          docker run -d --name api -p 8081:8080 sample-api
+          # Token estático: sin GCP. El upstream .invalid no resuelve, así se prueba el camino de error.
+          docker run -d --name gw -p 8082:8080 \
+            -e UPSTREAM_URL=https://upstream.invalid \
+            -e "API_KEYS=ci:$(printf ci-key | sha256sum | cut -c1-64)" \
+            -e "ALLOWED_ROUTES=GET /health" \
+            -e GCP_ID_TOKEN=dummy \
+            gateway
+          code() { curl -s -o /dev/null -w '%{http_code}' "$@"; }
+          for _ in $(seq 30); do
+            [ "$(code localhost:8081/health)" = 200 ] && [ "$(code localhost:8082/health)" = 401 ] && break
+            sleep 1
+          done
+          test "$(code localhost:8081/health)" = 200
+          test "$(code localhost:8082/health)" = 401
+          test "$(code -H 'X-API-Key: ci-key' localhost:8082/health)" = 502
+      - name: Logs de los contenedores
+        if: failure()
+        run: docker logs api; docker logs gw
