@@ -29,6 +29,8 @@ mkdir -p "$STAGE/gateway" "$STAGE/client"
 cp ../gateway/Dockerfile "$STAGE/Dockerfile"
 cp -r ../gateway/app ../gateway/requirements.txt "$STAGE/gateway/"
 cp ../client/identity_token.py "$STAGE/client/"
+# Las cachés locales de Python no deben acabar en la imagen.
+find "$STAGE" -name __pycache__ -type d -prune -exec rm -rf {} +
 
 # ALLOWED_ROUTES lleva comas y espacios: se usa '@' como delimitador de --set-env-vars.
 gcloud run deploy "$GATEWAY_SERVICE" \

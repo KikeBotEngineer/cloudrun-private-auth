@@ -1,0 +1,6 @@
+# Lo que gcloud run deploy --source no debe subir (sin esto sube cachés locales).
+.gcloudignore
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
