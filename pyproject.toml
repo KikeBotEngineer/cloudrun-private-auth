@@ -1,0 +1,14 @@
+# Solo configuración de herramientas para el repo (no es un paquete).
+[tool.pytest.ini_options]
+pythonpath = ["client", "gateway"]
+testpaths = ["client", "gateway/tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["identity_token", "app"]
