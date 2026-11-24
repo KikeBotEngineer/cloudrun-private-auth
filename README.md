@@ -54,7 +54,8 @@ Requisitos: `gcloud` autenticado y un proyecto con Cloud Run, Cloud Build, Artif
 ```bash
 cp deploy/env.example deploy/env   # completar PROJECT_ID, REGION, GITHUB_REPO...
 ./deploy/deploy-sample-api.sh      # API privada (--no-allow-unauthenticated)
-./deploy/verify.sh                 # 403 sin token, 200 con token
+./deploy/verify.sh                 # API: 403 sin token, 200 con token. Gateway: 401 sin key
+GATEWAY_API_KEY=<key> ./deploy/verify.sh   # además: gateway 200 con key y la API ve su SA
 ```
 
 `deploy/env` está en `.gitignore`: **no hay IDs reales en el repo.**
