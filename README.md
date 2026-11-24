@@ -113,7 +113,7 @@ Para consumidores **sin identidad en GCP** (Postman, un tercero, una herramienta
 |---|---|---|
 | `UPSTREAM_URL` | `https://sample-api-xxxx.run.app` | API privada (también es el audience) |
 | `API_KEYS` | `testers:<sha256>,partner-a:<sha256>` | Desde Secret Manager |
-| `ALLOWED_ROUTES` | `GET /health,GET /whoami` | Rutas que se pueden reenviar |
+| `ALLOWED_ROUTES` | `GET /health,GET /whoami` | Rutas que se pueden reenviar. Obligatoria; cada una `MÉTODO /ruta` |
 | `UPSTREAM_TIMEOUT_SECONDS` | `10` | Timeout hacia la API |
 
 | Código | Cuándo |

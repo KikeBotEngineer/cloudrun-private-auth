@@ -6,14 +6,13 @@ from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 
 from app.auth import identify
-from app.config import Settings, load_settings
+from app.config import METHODS, Settings, load_settings
 from identity_token import get_session
 
 log = logging.getLogger("gateway")
 
 # Lo único que se reenvía del cliente. Authorization y X-API-Key quedan fuera.
 FORWARDED_HEADERS = ("content-type", "accept", "x-request-id")
-METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"]
 # ponytail: límite fijo; pasarlo a Settings si alguna ruta necesita subir archivos.
 MAX_BODY_BYTES = 1024 * 1024
 
@@ -50,7 +49,7 @@ def create_app(settings: Settings | None = None, session: requests.Session | Non
     app = FastAPI(title="api-key-gateway", docs_url=None, redoc_url=None, openapi_url=None)
 
     # El body se lee solo después de validar key y ruta: sin key no se acepta ni un byte.
-    @app.api_route("/{path:path}", methods=METHODS)
+    @app.api_route("/{path:path}", methods=list(METHODS))
     async def proxy(path: str, request: Request):
         consumer = identify(request.headers.get("x-api-key"), settings.api_keys)
         if consumer is None:

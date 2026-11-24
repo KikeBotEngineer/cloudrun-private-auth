@@ -147,24 +147,53 @@ def test_key_never_logged(caplog):
 
 
 def test_load_settings():
-    digest = "a" * 64
+    digest, other = "a" * 64, "b" * 64
     s = load_settings(
         {
             "UPSTREAM_URL": UPSTREAM + "/",
-            "API_KEYS": f"testers:{digest}, partner-a:{digest.upper()}",
+            "API_KEYS": f"testers:{digest}, partner-a:{other.upper()}",
             "ALLOWED_ROUTES": "GET /health, get /whoami",
             "UPSTREAM_TIMEOUT_SECONDS": "5",
         }
     )
     assert s.upstream_url == UPSTREAM
-    assert s.api_keys == {"testers": digest, "partner-a": digest}
+    assert s.api_keys == {"testers": digest, "partner-a": other}
     assert s.allowed_routes == {("GET", "/health"), ("GET", "/whoami")}
     assert s.timeout == 5
 
 
+D1, D2 = "a" * 64, "b" * 64
+
+
+def _env(api_keys=f"testers:{D1}", routes="GET /whoami"):
+    return {"UPSTREAM_URL": UPSTREAM, "API_KEYS": api_keys, "ALLOWED_ROUTES": routes}
+
+
+def test_load_settings_ignores_stray_commas():
+    assert load_settings(_env(routes="GET /whoami,, ")).allowed_routes == {("GET", "/whoami")}
+
+
 @pytest.mark.parametrize(
-    "env", [{"UPSTREAM_URL": UPSTREAM}, {"UPSTREAM_URL": UPSTREAM, "API_KEYS": "testers:short"}]
+    "env",
+    [
+        {"UPSTREAM_URL": UPSTREAM, "ALLOWED_ROUTES": "GET /whoami"},  # sin API_KEYS
+        _env(api_keys="testers:short"),
+        _env(api_keys=f"testers:{'z' * 64}"),  # 64 caracteres pero no hex
+        _env(api_keys=f"testers:{D1},testers:{D2}"),  # consumidor repetido
+        _env(api_keys=f"testers:{D1},partner:{D1.upper()}"),  # misma key, dos consumidores
+        {"UPSTREAM_URL": UPSTREAM, "API_KEYS": f"testers:{D1}"},  # sin ALLOWED_ROUTES
+        _env(routes=" , "),  # ALLOWED_ROUTES sin rutas
+        _env(routes="GET whoami"),  # ruta sin /
+        _env(routes="GET"),  # método sin ruta
+        _env(routes="HEAD /whoami"),  # método que el gateway no enruta
+    ],
 )
 def test_load_settings_rejects_bad_config(env):
     with pytest.raises(RuntimeError):
         load_settings(env)
+
+
+def test_load_settings_error_never_shows_hash():
+    with pytest.raises(RuntimeError) as exc:
+        load_settings(_env(api_keys=f"testers:{D1},partner:{D1}"))
+    assert D1 not in str(exc.value)

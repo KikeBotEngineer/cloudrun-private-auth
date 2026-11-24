@@ -1,5 +1,9 @@
 import os
 from dataclasses import dataclass
+from string import hexdigits
+
+# Métodos que el gateway enruta; una ruta con otro método nunca podría coincidir.
+METHODS = ("GET", "POST", "PUT", "PATCH", "DELETE")
 
 
 @dataclass(frozen=True)
@@ -18,19 +22,31 @@ def _required(env, name: str) -> str:
 
 
 def load_settings(env=os.environ) -> Settings:
+    """Falla al arrancar ante cualquier configuración que dejaría el gateway inútil o ambiguo."""
     api_keys = {}
     for item in _required(env, "API_KEYS").split(","):
         name, _, digest = item.strip().partition(":")
-        if not name or len(digest) != 64:
-            # Nunca se imprime el valor: solo el nombre del consumidor.
+        digest = digest.lower()
+        # Nunca se imprime el hash: solo el nombre del consumidor.
+        if not name or len(digest) != 64 or not set(digest) <= set(hexdigits):
             raise RuntimeError(f"API_KEYS mal formado para el consumidor {name!r}")
-        api_keys[name] = digest.lower()
+        if name in api_keys:
+            raise RuntimeError(f"API_KEYS repite el consumidor {name!r}")
+        api_keys[name] = digest
+    if len(set(api_keys.values())) != len(api_keys):
+        raise RuntimeError("API_KEYS repite la misma key en dos consumidores")
 
     routes = set()
-    for item in env.get("ALLOWED_ROUTES", "").split(","):
+    for item in _required(env, "ALLOWED_ROUTES").split(","):
         method, _, path = item.strip().partition(" ")
-        if method:
-            routes.add((method.upper(), path.strip()))
+        if not method:
+            continue  # tolera comas sobrantes
+        method, path = method.upper(), path.strip()
+        if method not in METHODS or not path.startswith("/"):
+            raise RuntimeError(f"ALLOWED_ROUTES: ruta inválida {item.strip()!r} (MÉTODO /ruta)")
+        routes.add((method, path))
+    if not routes:
+        raise RuntimeError("ALLOWED_ROUTES no tiene ninguna ruta")
 
     return Settings(
         upstream_url=_required(env, "UPSTREAM_URL").rstrip("/"),

@@ -105,8 +105,8 @@ session.get(f"{API}/whoami").json()
 | Variable | Ejemplo | Uso |
 |---|---|---|
 | `UPSTREAM_URL` | `https://sample-api-xxxx.run.app` | API privada (también es el audience) |
-| `API_KEYS` | `testers:<sha256>,partner-a:<sha256>` | Consumidor → hash SHA-256 de su key |
-| `ALLOWED_ROUTES` | `GET /health,GET /whoami` | Rutas que se pueden reenviar |
+| `API_KEYS` | `testers:<sha256>,partner-a:<sha256>` | Consumidor → hash SHA-256 de su key. Sin consumidores ni keys repetidos |
+| `ALLOWED_ROUTES` | `GET /health,GET /whoami` | Rutas que se pueden reenviar. Obligatoria; cada una `MÉTODO /ruta` |
 | `UPSTREAM_TIMEOUT_SECONDS` | `10` | Timeout hacia la API |
 
 **Respuestas propias del gateway**
