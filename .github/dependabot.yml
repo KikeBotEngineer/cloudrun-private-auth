@@ -2,7 +2,7 @@
 version: 2
 updates:
   - package-ecosystem: pip
-    directories: ["/gateway", "/sample-api", "/client"]
+    directories: ["/", "/gateway", "/sample-api", "/client"]
     schedule:
       interval: weekly
     groups:

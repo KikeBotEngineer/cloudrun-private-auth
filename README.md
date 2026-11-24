@@ -26,7 +26,7 @@ flowchart LR
 | [client/](client/) | `identity_token.py`: `get_session(url)` y `get_token(url)` |
 | [gateway/](gateway/) | Gateway público con API key que reenvía a rutas permitidas |
 | [deploy/](deploy/) | Scripts `gcloud` de despliegue y permisos |
-| [.github/workflows/](.github/workflows/) | `ci.yml` (ruff + pytest) y `call-private-api.yml` (WIF) |
+| [.github/workflows/](.github/workflows/) | `ci.yml` (llaves privadas, ruff, pytest, imágenes Docker) y `call-private-api.yml` (WIF) |
 
 ## Cómo funciona
 
@@ -172,7 +172,7 @@ El script imprime `WIF_PROVIDER`, `CI_SA_EMAIL` y `API_URL`: configúralas como 
 Las pruebas corren **sin GCP** (credenciales y API simuladas):
 
 ```bash
-pip install -r gateway/requirements.txt -r sample-api/requirements.txt ruff pytest httpx
+pip install -r gateway/requirements.txt -r sample-api/requirements.txt -r requirements-dev.txt
 ruff check . && ruff format --check . && pytest
 ```
 
