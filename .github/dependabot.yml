@@ -1,0 +1,18 @@
+# PRs semanales con dependencias actualizadas; las de seguridad llegan en cuanto se publican.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directories: ["/gateway", "/sample-api", "/client"]
+    schedule:
+      interval: weekly
+    groups:
+      python:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
