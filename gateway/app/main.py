@@ -53,7 +53,9 @@ def create_app(settings: Settings | None = None, session: requests.Session | Non
     async def proxy(path: str, request: Request):
         consumer = identify(request.headers.get("x-api-key"), settings.api_keys)
         if consumer is None:
-            log.warning("API key faltante o inválida method=%s path=/%s", request.method, path)
+            # path y request_id los controla el cliente: %.200r escapa saltos de línea
+            # y recorta, así no pueden inyectar líneas falsas en los logs.
+            log.warning("API key faltante o inválida method=%s path=%.200r", request.method, path)
             return _error(401, "API key faltante o inválida")
 
         route = f"/{path}"
@@ -86,7 +88,7 @@ def create_app(settings: Settings | None = None, session: requests.Session | Non
             return _error(502, "No se pudo contactar la API")
 
         log.info(
-            "consumer=%s %s %s -> %s request_id=%s",
+            "consumer=%s %s %s -> %s request_id=%.200r",
             consumer,
             request.method,
             route,

@@ -146,6 +146,15 @@ def test_key_never_logged(caplog):
     assert KEY not in caplog.text
 
 
+def test_client_values_cannot_inject_log_lines(caplog):
+    caplog.set_level(logging.INFO)
+    client = make_client(FakeUpstream())
+    client.get("/x%0AINFO falso consumer=admin", headers={"X-API-Key": "wrong"})
+    client.get("/whoami", headers={"X-API-Key": KEY, "X-Request-Id": "r" * 5000})
+    assert all("\n" not in r.getMessage() for r in caplog.records)
+    assert all(len(r.getMessage()) < 400 for r in caplog.records)
+
+
 def test_load_settings():
     digest, other = "a" * 64, "b" * 64
     s = load_settings(
