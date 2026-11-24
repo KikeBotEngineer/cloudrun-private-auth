@@ -101,6 +101,17 @@ def create_app(settings: Settings | None = None, session: requests.Session | Non
             log.error("La API rechazó al gateway: ¿falta roles/run.invoker a su service account?")
             return _error(502, "El gateway no está autorizado en la API")
 
+        # Un 5xx puede traer trazas o detalles internos: se conserva el código, no el cuerpo.
+        if upstream.status_code >= 500:
+            log.error(
+                "La API respondió %s consumer=%s %s %s",
+                upstream.status_code,
+                consumer,
+                request.method,
+                route,
+            )
+            return _error(upstream.status_code, "Error en la API")
+
         return Response(
             upstream.content,
             status_code=upstream.status_code,

@@ -120,6 +120,8 @@ Para consumidores **sin identidad en GCP** (Postman, un tercero, una herramienta
 |---|---|
 | `401` | Falta la key o es inválida |
 | `404` | La ruta no está en la lista permitida |
+| `413` | Body mayor de 1 MiB |
+| `5xx` | La API respondió `5xx`: mismo código, cuerpo genérico |
 | `502` | La API respondió `401/403`: falta `run.invoker` a la SA del gateway (un `403` propio de la API también se vería así) |
 | `504` | Timeout hacia la API |
 

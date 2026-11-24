@@ -115,6 +115,8 @@ session.get(f"{API}/whoami").json()
 |---|---|
 | `401` | Falta la key o es inválida |
 | `404` | La ruta no está en la lista permitida |
+| `413` | Body mayor de 1 MiB (se lee solo después de validar key y ruta) |
+| `5xx` | La API respondió `5xx`: se conserva el código, el cuerpo se reemplaza por uno genérico (el detalle queda en el log) |
 | `502` | La API privada respondió `401/403`: falta `run.invoker` a la SA del gateway. Todo `401/403` de la API se trata así; si la API llega a tener autorización propia, hay que distinguirlos |
 | `504` | Timeout hacia la API |
 
@@ -206,7 +208,10 @@ Todas corren **sin GCP** (credenciales y API privada simuladas):
   - sin key o key inválida → `401`
   - ruta no permitida → `404`
   - el `Authorization` del cliente se reemplaza por el token del gateway
+  - body > 1 MiB → `413` (y sin key → `401`, no `413`)
+  - un `3xx` de la API se devuelve, no se sigue; `Location` relativo si apunta a la API
   - API responde `403` → `502`
+  - API responde `5xx` → mismo código, sin su cuerpo
   - timeout → `504`
   - la key nunca aparece en logs
 - **Contra GCP real** (manual, `deploy/verify.sh`): `403` sin token y `200` con token.

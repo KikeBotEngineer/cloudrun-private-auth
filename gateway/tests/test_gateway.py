@@ -23,16 +23,17 @@ SETTINGS = Settings(
 class FakeUpstream(requests.adapters.BaseAdapter):
     """Simula la API privada a nivel de transporte y guarda lo que recibió."""
 
-    def __init__(self, status=200, exc=None, headers=None):
+    def __init__(self, status=200, exc=None, headers=None, body=b'{"ok": true}'):
         super().__init__()
-        self.status, self.exc, self.headers, self.sent = status, exc, headers or {}, []
+        self.status, self.exc, self.headers, self.body = status, exc, headers or {}, body
+        self.sent = []
 
     def send(self, request, **kwargs):
         self.sent.append(request)
         if self.exc:
             raise self.exc
         resp = requests.Response()
-        resp.status_code, resp._content, resp.url = self.status, b'{"ok": true}', request.url
+        resp.status_code, resp._content, resp.url = self.status, self.body, request.url
         resp.request = request  # como en una respuesta real; requests lo usa en los 3xx
         resp.headers["Content-Type"] = "application/json"
         resp.headers.update(self.headers)
@@ -120,6 +121,14 @@ def test_redirect_is_returned_not_followed(location, expected):
 def test_upstream_rejects_gateway_is_502(status):
     resp = make_client(FakeUpstream(status=status)).get("/whoami", headers={"X-API-Key": KEY})
     assert resp.status_code == 502
+
+
+@pytest.mark.parametrize("status", [500, 503])
+def test_upstream_5xx_keeps_status_hides_body(status):
+    upstream = FakeUpstream(status=status, body=b"Traceback: secreto interno")
+    resp = make_client(upstream).get("/whoami", headers={"X-API-Key": KEY})
+    assert resp.status_code == status
+    assert resp.json() == {"detail": "Error en la API"}
 
 
 def test_upstream_timeout_is_504():
