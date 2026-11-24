@@ -2,7 +2,8 @@
 
 Orden de resolución de la credencial:
   1. GCP_ID_TOKEN: token ya emitido (`gcloud auth print-identity-token`). No se refresca.
-  2. GOOGLE_APPLICATION_CREDENTIALS: llave JSON de una service account. Se refresca.
+  2. GOOGLE_APPLICATION_CREDENTIALS: llave JSON de una service account (o SA impersonada).
+     Se refresca.
   3. Nada: metadata server (Cloud Run, GCE, Functions). Se refresca.
 
 Uso:
@@ -14,7 +15,7 @@ import os
 from urllib.parse import urlsplit
 
 from google.auth.transport.requests import AuthorizedSession, Request
-from google.oauth2 import id_token, service_account
+from google.oauth2 import id_token
 from google.oauth2.credentials import Credentials as StaticCredentials
 
 
@@ -38,11 +39,7 @@ def _credentials(audience: str):
     token = os.environ.get("GCP_ID_TOKEN")
     if token:
         return StaticCredentials(token=token)
-    key_file = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-    if key_file:
-        return service_account.IDTokenCredentials.from_service_account_file(
-            key_file, target_audience=audience
-        )
+    # google-auth resuelve 2 y 3 en ese orden (GOOGLE_APPLICATION_CREDENTIALS, luego metadata).
     return id_token.fetch_id_token_credentials(audience, request=Request())
 
 
