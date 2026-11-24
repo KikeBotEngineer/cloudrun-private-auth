@@ -120,7 +120,7 @@ Para consumidores **sin identidad en GCP** (Postman, un tercero, una herramienta
 |---|---|
 | `401` | Falta la key o es inválida |
 | `404` | La ruta no está en la lista permitida |
-| `502` | La API respondió `401/403`: falta `run.invoker` a la SA del gateway |
+| `502` | La API respondió `401/403`: falta `run.invoker` a la SA del gateway (un `403` propio de la API también se vería así) |
 | `504` | Timeout hacia la API |
 
 > Si la organización tiene *Domain Restricted Sharing*, `allUsers` no se puede asignar y el gateway no puede ser público. Alternativa: **API Gateway** con API keys administradas.

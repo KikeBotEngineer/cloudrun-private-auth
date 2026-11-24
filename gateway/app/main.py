@@ -94,6 +94,9 @@ def create_app(settings: Settings | None = None, session: requests.Session | Non
             upstream.status_code,
             headers.get("x-request-id", "-"),
         )
+        # ponytail: se asume que todo 401/403 viene del IAM de Cloud Run (la sample-api no
+        # tiene autorización propia). Si la API empieza a devolver 403 de negocio, distinguirlo
+        # por el cuerpo: el rechazo de IAM llega en HTML desde Google, no en el JSON de la API.
         if upstream.status_code in (401, 403):
             log.error("La API rechazó al gateway: ¿falta roles/run.invoker a su service account?")
             return _error(502, "El gateway no está autorizado en la API")

@@ -115,7 +115,7 @@ session.get(f"{API}/whoami").json()
 |---|---|
 | `401` | Falta la key o es inválida |
 | `404` | La ruta no está en la lista permitida |
-| `502` | La API privada respondió `401/403`: falta `run.invoker` a la SA del gateway |
+| `502` | La API privada respondió `401/403`: falta `run.invoker` a la SA del gateway. Todo `401/403` de la API se trata así; si la API llega a tener autorización propia, hay que distinguirlos |
 | `504` | Timeout hacia la API |
 
 **Decisiones**
