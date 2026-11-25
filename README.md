@@ -1,5 +1,8 @@
 # cloudrun-private-auth
 
+[![CI](https://github.com/KikeBotEngineer/cloudrun-private-auth/actions/workflows/ci.yml/badge.svg)](https://github.com/KikeBotEngineer/cloudrun-private-auth/actions/workflows/ci.yml)
+[![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-blue.svg)](LICENSE)
+
 APIs **privadas en Cloud Run** sin una línea de autenticación en la API, y cómo consumirlas desde cualquier lado: laptop, otro servicio en GCP, GitHub Actions o un tercero sin cuenta de GCP.
 
 > **La protección es el IAM de Cloud Run. El ID token es solo la credencial con la que el cliente demuestra quién es.**
@@ -48,6 +51,8 @@ sequenceDiagram
 > ⚠️ `/whoami` decodifica el JWT **sin verificar la firma**. Es aceptable solo porque Cloud Run ya lo verificó en su frontera. **No copies ese código a una API pública.**
 
 ## Puesta en marcha
+
+> **Proyecto demo.** No hay un despliegue público. CI comprueba el código, las pruebas y que las imágenes construyen y arrancan; los scripts de `deploy/` están pensados para correrse en un proyecto de GCP propio y `verify.sh` confirma el resultado.
 
 Requisitos: `gcloud` autenticado y un proyecto con Cloud Run, Cloud Build, Artifact Registry, Secret Manager e IAM Credentials habilitados.
 
@@ -178,3 +183,7 @@ ruff check . && ruff format --check . && pytest
 ```
 
 Para construir la imagen del gateway en local, el contexto es la raíz del repo: `docker build -f gateway/Dockerfile .`
+
+## Licencia
+
+[MIT](LICENSE)

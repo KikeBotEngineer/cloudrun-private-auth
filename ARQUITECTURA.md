@@ -220,13 +220,18 @@ Todas corren **sin GCP** (credenciales y API privada simuladas):
 - **Contenedores** (CI, job `docker`): se construyen ambas imágenes y se arrancan; `sample-api` responde `200` en `/health` y el gateway `401` sin key y `502` con key (upstream inexistente).
 - **Contra GCP real** (manual, `deploy/verify.sh`): API `403` sin token y `200` con token; gateway `401` sin key y, con `GATEWAY_API_KEY`, `200` con la SA del gateway como identidad que ve la API.
 
-## 11. Plan de trabajo (~1 día)
+## 11. Historial
 
-| # | Commit | Contenido |
-|---|---|---|
-| 1 | `feat: private sample api` | `sample-api/` + `deploy-sample-api.sh` + `verify.sh` |
-| 2 | `feat: identity token client` | `client/` + pruebas |
-| 3 | `feat: api key gateway` | `gateway/` + pruebas + `deploy-gateway.sh` |
-| 4 | `ci: lint and tests` | `ci.yml` |
-| 5 | `feat: keyless ci with workload identity federation` | `setup-wif.sh` + `call-private-api.yml` |
-| 6 | `docs: readme with diagrams and decision table` | README |
+**Construcción.** Un commit por pieza, en este orden: API privada de ejemplo → cliente de ID tokens → gateway con API key → CI (lint y pruebas) → CI sin llaves con Workload Identity Federation → README con diagramas y tabla de decisiones.
+
+**Revisión de seguridad.** Después se auditó el repo completo y cada hallazgo se corrigió en su propio commit, con prueba cuando aplicaba:
+
+| Área | Cambio |
+|---|---|
+| Identidad en CI | WIF restringido por `repository_id` (no por nombre, que se puede reciclar) y por `refs/heads/main` |
+| Dependencias | CVE en starlette y requests corregidos; Dependabot para pip, Docker y Actions; actions fijadas por SHA; imágenes base por digest; herramientas de dev con versión fija |
+| Gateway | Key validada antes de leer el body; body limitado a 1 MiB (`413`); 3xx devueltos en vez de seguidos, con `Location` relativo; cuerpo de los 5xx de la API oculto; valores del cliente escapados y recortados en logs; configuración inválida o ambigua rechazada al arrancar; tope de instancias |
+| Cliente | Audience armado solo con esquema y host: sin credenciales en la URL ni en los errores; `GOOGLE_APPLICATION_CREDENTIALS` delegado en google-auth |
+| Despliegue | `run.invoker` correcto también para service accounts; sin cachés locales en lo que se sube; `verify.sh` prueba también el gateway |
+| CI | Rechaza llaves privadas versionadas por contenido; construye y arranca ambas imágenes |
+| API de ejemplo | Pruebas propias; `400` si el token no trae un objeto JSON |
